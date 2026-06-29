@@ -295,17 +295,19 @@ while true; do
     if [ -n "$LATEST_RUN" ] && [ -f "${LATEST_RUN}result.json" ] && \
        python3 -c "import json,sys; r=json.load(open(sys.argv[1])); sys.exit(0 if r.get('status') in ('completed','failed') else 1)" "${LATEST_RUN}result.json" 2>/dev/null; then
         RESULT_FILE="${LATEST_RUN}result.json"
-        log "Match result found, waiting for replay recording..."
-        for i in $(seq 1 180); do
-            if [ -f "${LATEST_RUN}replay.mp4" ]; then
-                log "Replay video ready"
-                break
-            fi
-            if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
-                break
-            fi
-            sleep 1
-        done
+        if [ "$RECORD_REPLAY" = "true" ]; then
+            log "Match result found, waiting for replay recording..."
+            for i in $(seq 1 180); do
+                if [ -f "${LATEST_RUN}replay.mp4" ]; then
+                    log "Replay video ready"
+                    break
+                fi
+                if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+                    break
+                fi
+                sleep 1
+            done
+        fi
         sleep 3
         break
     fi
