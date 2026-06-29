@@ -39,7 +39,18 @@ This document covers daemon and mod runtime architecture. The normative source r
 - `baseline.py` — four deterministic baselines (`random`, `block_always`, `greedy_damage`, `scripted_safe`)
 - `anthropic.py` — Anthropic Claude models
 - `openai.py` — OpenAI models
-- `openrouter.py` — OpenRouter-proxied models
+- `openrouter.py` — OpenRouter-proxied models, and OpenAI-compatible endpoints such as DeepSeek via `options.base_url`
+
+The `openrouter` adapter supports these policy options:
+
+| Option | Description |
+|---|---|
+| `base_url` | Override the API endpoint (e.g. `https://api.deepseek.com` for DeepSeek) |
+| `response_format` | `json_schema` (default) or `json_object` for providers without schema support |
+| `http_referer` | OpenRouter HTTP-Referer header |
+| `title` | OpenRouter X-Title header |
+| `categories` | OpenRouter X-OpenRouter-Categories header |
+| `reasoning_effort` | Reasoning effort for supported models |
 
 Placeholder stubs exist for `google`, `local`, and `ollama` but are not registered.
 

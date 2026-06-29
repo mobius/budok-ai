@@ -306,3 +306,49 @@ scripts/run_round_robin.sh report --output results/prompt_comparison.json
 ```
 
 4. Compare Elo ratings, win rates, fallback rates, and latency across prompt strategies.
+
+## DeepSeek verification
+
+DeepSeek models can be used through the `openrouter` adapter because the DeepSeek API is OpenAI-compatible. Two sample configs are provided:
+
+- `daemon/config/deepseek_vs_baseline.json` — standard 750 HP match
+- `daemon/config/deepseek_vs_baseline_short.json` — 200 HP match for faster verification
+
+Required environment variable:
+
+```bash
+DEEPSEEK_API_KEY=sk-...  # add to .env
+```
+
+Run a short verification match:
+
+```bash
+scripts/run_match_podman.sh --game-dir /path/to/YomiHustle \
+  --daemon-config daemon/config/deepseek_vs_baseline_short.json
+```
+
+Or natively on Linux (requires Xvfb):
+
+```bash
+GAME_DIR=/path/to/YomiHustle \
+  scripts/run_match_linux.sh --daemon-config daemon/config/deepseek_vs_baseline_short.json
+```
+
+Verified result (2026-06-29, deepseek-v4-flash vs baseline/random, 200 HP):
+
+```text
+Status:  completed
+Winner:  p1 (DeepSeek)
+Reason:  ko
+Turns:   14
+Character selection: P1=Cowboy, P2=Wizard
+Fallback count: 0
+Average latency: ~20 s/decision
+Tokens: 36,360 in / 9,168 out
+```
+
+Notes:
+
+- DeepSeek does not support `response_format: {type: "json_schema"}`, so set `"response_format": "json_object"` in policy options.
+- Character selection (`llm_choice` mode) also respects `base_url` and `response_format` from policy options.
+- DeepSeek API latency is higher than Anthropic/OpenAI; expect matches to take several minutes.
