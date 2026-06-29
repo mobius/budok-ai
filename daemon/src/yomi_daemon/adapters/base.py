@@ -166,6 +166,7 @@ def build_policy_registry(runtime_config: "DaemonRuntimeConfig") -> Mapping[str,
     from yomi_daemon.adapters.baseline import build_baseline_adapter
     from yomi_daemon.adapters.openai import build_openai_adapter
     from yomi_daemon.adapters.openrouter import build_openrouter_adapter
+    from yomi_daemon.adapters.rl import build_rl_adapter
 
     registry: dict[str, PolicyAdapter] = {}
     for policy_id, policy in runtime_config.policies.items():
@@ -196,6 +197,15 @@ def build_policy_registry(runtime_config: "DaemonRuntimeConfig") -> Mapping[str,
             continue
         if policy.provider == "openrouter":
             registry[policy_id] = build_openrouter_adapter(
+                policy_id,
+                policy,
+                decision_timeout_ms=runtime_config.decision_timeout_ms,
+                fallback_mode=runtime_config.fallback_mode,
+                default_trace_seed=runtime_config.trace_seed,
+            )
+            continue
+        if policy.provider == "rl":
+            registry[policy_id] = build_rl_adapter(
                 policy_id,
                 policy,
                 decision_timeout_ms=runtime_config.decision_timeout_ms,

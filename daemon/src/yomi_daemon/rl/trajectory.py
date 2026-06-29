@@ -43,6 +43,17 @@ class TrajectoryExtractor:
         decisions = _read_jsonl(decisions_path)
         events = _read_jsonl(events_path) if events_path.exists() else []
 
+        # Pre-build action vocabulary for this match so every step has the same
+        # mask length.
+        for decision in decisions:
+            request = decision.get("request_payload", {})
+            self.action_encoder.encode_legal_actions(request.get("legal_actions", []))
+            decision_payload = decision.get("decision_payload", {})
+            self.action_encoder.encode_action(
+                str(decision_payload.get("action", "")),
+                decision_payload.get("data"),
+            )
+
         return self._build_trajectory(result, decisions, events)
 
     def extract_from_runs_root(
@@ -52,16 +63,48 @@ class TrajectoryExtractor:
         max_matches: int | None = None,
     ) -> list[MatchTrajectory]:
         """Extract trajectories from all completed matches under ``runs_root``."""
+        run_dirs = [
+            run_dir
+            for run_dir in sorted(runs_root.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+            if run_dir.is_dir()
+        ]
+
+        # First pass: collect all legal actions across all matches so the action
+        # vocabulary (and therefore mask size) is fixed before extraction.
+        self._build_action_vocab_from_runs(run_dirs, max_matches=max_matches)
+
         trajectories: list[MatchTrajectory] = []
-        for run_dir in sorted(runs_root.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
-            if not run_dir.is_dir():
-                continue
+        for run_dir in run_dirs:
             traj = self.extract_from_directory(run_dir)
             if traj is not None:
                 trajectories.append(traj)
                 if max_matches is not None and len(trajectories) >= max_matches:
                     break
         return trajectories
+
+    def _build_action_vocab_from_runs(
+        self,
+        run_dirs: Sequence[Path],
+        *,
+        max_matches: int | None = None,
+    ) -> None:
+        """Pre-register every legal action seen in the dataset."""
+        matched = 0
+        for run_dir in run_dirs:
+            if max_matches is not None and matched >= max_matches:
+                break
+            decisions_path = run_dir / "decisions.jsonl"
+            if not decisions_path.exists():
+                continue
+            matched += 1
+            for decision in _read_jsonl(decisions_path):
+                request = decision.get("request_payload", {})
+                legal_actions = request.get("legal_actions", [])
+                self.action_encoder.encode_legal_actions(legal_actions)
+                decision_payload = decision.get("decision_payload", {})
+                action_name = str(decision_payload.get("action", ""))
+                action_data = decision_payload.get("data")
+                self.action_encoder.encode_action(action_name, action_data)
 
     def _build_trajectory(
         self,
