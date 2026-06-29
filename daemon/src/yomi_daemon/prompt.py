@@ -644,8 +644,11 @@ def _compact_observation(request: DecisionRequest) -> JsonObject:
                 "p2_hp_delta",
                 "p1_outcome",
                 "p2_outcome",
+                "p1_was_fallback",
+                "p2_was_fallback",
             ):
-                if key in entry and entry[key] is not None:
+                # Booleans default to False; only include truthy/non-None values.
+                if key in entry and entry[key] is not None and entry[key] is not False:
                     compact[key] = entry[key]
             compact_history.append(compact)
         obs["history"] = compact_history

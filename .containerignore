@@ -1,0 +1,20 @@
+# Build/runtime artifacts that should not be copied into the container image.
+.git/
+.gitignore
+daemon/.venv/
+daemon/.python-version
+dist/
+runs/*/
+!runs/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ty_cache/
+*.log
+*.mp4
+*.replay
+.DS_Store

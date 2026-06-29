@@ -10,7 +10,11 @@ from pathlib import Path
 
 def is_uv_managed_executable(executable: Path) -> bool:
     executable_text = str(executable)
-    return ".venv" in executable.parts or ".local/share/uv" in executable_text
+    return (
+        ".venv" in executable.parts
+        or ".local/share/uv" in executable_text
+        or "/opt/uv/python/" in executable_text
+    )
 
 
 def uv_runtime_summary() -> dict[str, str | bool]:

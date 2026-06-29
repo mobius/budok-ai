@@ -674,16 +674,24 @@ def _font(size: float, *, bold: bool = False, scale: int = 2) -> _LoadedFont:
 
 def _font_path(*, bold: bool) -> Path:
     candidates = [
+        # macOS bundled Times New Roman
         "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"
         if bold
         else "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
         "/System/Library/Fonts/Times.ttc",
+        # Linux common serif fallbacks (Dejavu, Liberation, Free, Nimbus)
+        f"/usr/share/fonts/truetype/dejavu/DejaVuSerif{'-Bold' if bold else ''}.ttf",
+        f"/usr/share/fonts/truetype/liberation2/LiberationSerif-{'Bold' if bold else 'Regular'}.ttf",
+        f"/usr/share/fonts/truetype/liberation/LiberationSerif-{'Bold' if bold else 'Regular'}.ttf",
+        f"/usr/share/fonts/truetype/freefont/FreeSerif{'Bold' if bold else ''}.ttf",
     ]
     for candidate in candidates:
         path = Path(candidate)
         if path.is_file():
             return path
-    raise FileNotFoundError("Could not find a Times New Roman font on this system.")
+    raise FileNotFoundError(
+        "Could not find a Times New Roman or compatible serif font on this system."
+    )
 
 
 def _compute_layout(

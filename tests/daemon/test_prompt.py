@@ -65,7 +65,8 @@ def test_render_prompt_is_deterministic_for_same_request() -> None:
     assert first.variant is PromptTemplateVariant.STRATEGIC
     assert "## Observation" in first.prompt_text
     assert '"policy_id": "provider/openai-main"' in first.prompt_text
-    assert '"minimum": -100' in first.prompt_text
+    # The output contract is now a compact prose description instead of the full schema.
+    assert "integers -100..100" in first.prompt_text
     assert '"prediction_spec"' in first.prompt_text
 
 
@@ -184,9 +185,8 @@ def test_rendered_prompt_di_range_appears_in_output_contract() -> None:
     request = build_request((build_action("guard", di=True),))
     rendered = render_prompt(request, configured_prompt_version="minimal_v1")
 
-    # Parse the schema JSON from the output contract section
-    assert '"minimum": -100' in rendered.prompt_text
-    assert '"maximum": 100' in rendered.prompt_text
+    # The output contract is now compact prose rather than full JSON schema.
+    assert "integers -100..100" in rendered.prompt_text
 
 
 def test_rendered_prompt_includes_supports_flags() -> None:

@@ -1,0 +1,38 @@
+# match-linux.conf — end-to-end match configuration for Linux native runs
+#
+# Copy this file to match-linux.conf (or any name) and pass it to
+# scripts/run_match_linux.sh:
+#   scripts/run_match_linux.sh match-linux.conf
+#
+# Lines starting with # are comments. Blank lines are ignored.
+# All values are KEY=VALUE pairs (no spaces around =).
+
+# --- Local game settings ---
+
+# Path to the YOMI Hustle game directory on this machine
+GAME_DIR=/home/nlevine/games/yomi
+
+# Xvfb display number (must match what Xvfb is started with)
+DISPLAY_NUM=:99
+
+# Xvfb resolution
+RESOLUTION=1280x720
+
+# --- Daemon config ---
+
+# Path to the daemon runtime config JSON (relative to repo root or absolute)
+DAEMON_CONFIG=daemon/config/llm_v_llm.json
+
+# Override daemon listen port (leave empty to use config file value)
+DAEMON_PORT=
+
+# Override log level (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL=INFO
+
+# Replay recording (true/false). When true, ffmpeg runs locally on DISPLAY_NUM.
+RECORD_REPLAY=true
+
+# --- Environment ---
+
+# Path to .env file for API keys (relative to repo root or absolute)
+ENV_FILE=.env

@@ -55,10 +55,14 @@ if [ ! -d "$GAME_DIR" ]; then
     exit 1
 fi
 
-# Check for a Godot project marker (exported games have project.binary, dev builds have project.godot)
-if [ ! -f "$GAME_DIR/project.godot" ] && [ ! -f "$GAME_DIR/project.binary" ]; then
+# Check for a Godot project marker. Steam/exported builds ship the project data
+# inside the .pck and may not have project.godot/project.binary.
+GAME_BINARY="$GAME_DIR/YourOnlyMoveIsHUSTLE.x86_64"
+GAME_PCK="$GAME_DIR/YourOnlyMoveIsHUSTLE.pck"
+if [ ! -f "$GAME_DIR/project.godot" ] && [ ! -f "$GAME_DIR/project.binary" ] && \
+   [ ! -f "$GAME_BINARY" ]; then
     printf 'ERROR: Directory does not look like a YOMI Hustle installation.\n' >&2
-    printf '  Expected project.godot or project.binary in: %s\n' "$GAME_DIR" >&2
+    printf '  Expected project.godot, project.binary, or %s in: %s\n' "$(basename "$GAME_BINARY")" "$GAME_DIR" >&2
     printf '  Point --game-dir to the directory containing the game executable.\n' >&2
     exit 1
 fi

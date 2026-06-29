@@ -965,16 +965,24 @@ def test_parameterized_decisions_pass_legality_validation() -> None:
 
 
 def _build_history(n: int) -> tuple[HistoryEntry, ...]:
-    """Build a realistic history of n entries alternating players."""
+    """Build a realistic history of n entries alternating players.
+
+    Uses enriched per-player fields because the compact observation renderer
+    keeps p1_action/p2_action and related fields, not the legacy single-player
+    player_id/action fields.
+    """
     entries: list[HistoryEntry] = []
     actions_cycle = ["block", "jab", "gun_toss", "block", "conjure_storm"]
     for i in range(n):
+        is_p1 = i % 2 == 0
+        action = actions_cycle[i % len(actions_cycle)]
         entries.append(
             HistoryEntry(
                 turn_id=i + 1,
-                player_id="p1" if i % 2 == 0 else "p2",
-                action=actions_cycle[i % len(actions_cycle)],
-                was_fallback=i == 3,  # one fallback in the middle
+                p1_action=action if is_p1 else None,
+                p2_action=None if is_p1 else action,
+                p1_was_fallback=(i == 3 and is_p1),
+                p2_was_fallback=(i == 3 and not is_p1),
             )
         )
     return tuple(entries)
@@ -991,11 +999,12 @@ def test_prompt_renders_history_entries() -> None:
 
     rendered = render_prompt(request, configured_prompt_version="minimal_v1")
 
-    # History entries should appear in the observation JSON
+    # History entries should appear in the compact observation JSON.
     assert '"history"' in rendered.prompt_text
     assert '"gun_toss"' in rendered.prompt_text
     assert '"conjure_storm"' in rendered.prompt_text
-    assert '"was_fallback": true' in rendered.prompt_text
+    # i == 3 is a p2 turn, so the fallback flag lands on p2.
+    assert '"p2_was_fallback": true' in rendered.prompt_text
 
 
 def test_prompt_history_interacts_with_parameterized_actions() -> None:
