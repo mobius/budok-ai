@@ -1,0 +1,42 @@
+{
+  "version": "v1",
+  "transport": {
+    "host": "0.0.0.0",
+    "port": 8765
+  },
+  "decision_timeout_ms": 10000,
+  "fallback_mode": "safe_continue",
+  "logging": {
+    "events": true,
+    "prompts": false,
+    "raw_provider_payloads": false
+  },
+  "policy_mapping": {
+    "p1": "rl/bc_baseline",
+    "p2": "baseline/random"
+  },
+  "policies": {
+    "rl/bc_baseline": {
+      "provider": "rl",
+      "model": "bc_baseline",
+      "prompt_version": "none",
+      "options": {
+        "model_path": "models/bc_baseline/bc_best.pt",
+        "encoder_dir": "models/bc_baseline",
+        "deterministic": false
+      }
+    },
+    "baseline/random": {
+      "provider": "baseline",
+      "prompt_version": "none"
+    }
+  },
+  "character_selection": {
+    "mode": "mirror"
+  },
+  "trace_seed": 0,
+  "stage_id": "training_room",
+  "match_options": {
+    "starting_hp": 200
+  }
+}
