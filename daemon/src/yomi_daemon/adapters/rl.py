@@ -48,8 +48,10 @@ class RLAdapter(BasePolicyAdapter):
         return (await self.decide_with_trace(request)).decision
 
     async def decide_with_trace(self, request: DecisionRequest) -> PolicyDecisionResult:
-        obs_vector = self._observation_encoder.encode(request.observation)
-        legal_indices = self._action_encoder.encode_legal_actions(request.legal_actions)
+        obs_vector = self._observation_encoder.encode(request.observation.to_dict())
+        legal_indices = self._action_encoder.encode_legal_actions(
+            [la.to_dict() for la in request.legal_actions]
+        )
         legal_mask, _ = self._action_encoder.build_mask(legal_indices)
 
         action_index = self._model.select_action(
@@ -158,13 +160,15 @@ def _load_action_encoder(encoder_dir: Path) -> ActionEncoder:
         action_to_index = config.get("action_encoder", {}).get("action_to_index")
         if isinstance(action_to_index, dict):
             encoder = ActionEncoder()
-            # Re-register actions in index order
+            # Re-register actions in index order so the vocabulary size and
+            # indices match the trained model.
             for action_key, idx in sorted(action_to_index.items(), key=lambda kv: kv[1]):
-                # action_key is canonical; decode enough to register
                 if ":" in action_key:
-                    action_name, _payload_json = action_key.split(":", 1)
+                    action_name, payload_json = action_key.split(":", 1)
+                    payload = json.loads(payload_json)
                 else:
                     action_name = action_key
-                encoder.encode_action(action_name)
+                    payload = None
+                encoder.encode_action(action_name, payload)
             return encoder
     return ActionEncoder()
