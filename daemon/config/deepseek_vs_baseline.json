@@ -1,0 +1,48 @@
+{
+  "version": "v1",
+  "transport": {
+    "host": "0.0.0.0",
+    "port": 8765
+  },
+  "decision_timeout_ms": 120000,
+  "fallback_mode": "safe_continue",
+  "logging": {
+    "events": true,
+    "prompts": true,
+    "raw_provider_payloads": true
+  },
+  "policy_mapping": {
+    "p1": "deepseek/chat",
+    "p2": "baseline/random"
+  },
+  "policies": {
+    "deepseek/chat": {
+      "provider": "openrouter",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "strategic_v1",
+      "credential_env_var": "DEEPSEEK_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "options": {
+        "base_url": "https://api.deepseek.com",
+        "response_format": "json_object",
+        "response_parser": {
+          "enable_correction_retry": true,
+          "max_correction_retries": 1
+        }
+      }
+    },
+    "baseline/random": {
+      "provider": "baseline",
+      "prompt_version": "none"
+    }
+  },
+  "character_selection": {
+    "mode": "llm_choice"
+  },
+  "trace_seed": 1,
+  "stage_id": "training_room",
+  "match_options": {
+    "starting_hp": 750
+  }
+}

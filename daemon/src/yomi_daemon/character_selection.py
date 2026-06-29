@@ -366,9 +366,16 @@ async def _call_openai_compat(
     if not api_key:
         raise ValueError(f"API key not configured for {provider} character selection")
 
-    base_url = "https://openrouter.ai/api/v1" if provider == "openrouter" else None
+    options = dict(policy_config.options)
+    custom_base_url = options.get("base_url")
+    response_format = options.get("response_format", "json_schema")
+
+    base_url: str | None = "https://openrouter.ai/api/v1" if provider == "openrouter" else None
+    if isinstance(custom_base_url, str) and custom_base_url:
+        base_url = custom_base_url
+
     default_headers: dict[str, str] = {}
-    if provider == "openrouter":
+    if provider == "openrouter" and not isinstance(custom_base_url, str):
         default_headers["X-Title"] = "budok-ai"
         default_headers["X-OpenRouter-Categories"] = "game"
     client = AsyncOpenAI(
@@ -376,7 +383,19 @@ async def _call_openai_compat(
         base_url=base_url,
         default_headers=default_headers or None,
     )
-    schema = character_select_output_json_schema()
+
+    if response_format == "json_object":
+        response_format_payload: dict[str, Any] = {"type": "json_object"}
+    else:
+        schema = character_select_output_json_schema()
+        response_format_payload = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "character_choice",
+                "strict": True,
+                "schema": schema,
+            },
+        }
 
     payload: dict[str, Any] = {
         "model": cast(str, policy_config.model),
@@ -391,14 +410,7 @@ async def _call_openai_compat(
                 ),
             }
         ],
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "character_choice",
-                "strict": True,
-                "schema": schema,
-            },
-        },
+        "response_format": response_format_payload,
     }
     if policy_config.temperature is not None:
         payload["temperature"] = policy_config.temperature

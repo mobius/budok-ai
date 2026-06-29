@@ -34,6 +34,7 @@ class StubOpenRouterTransport(OpenRouterTransport):
         http_referer: str | None,
         title: str | None,
         categories: str | None = None,
+        base_url: str | None = None,
     ) -> JsonObject:
         self.calls.append(
             {
@@ -43,6 +44,7 @@ class StubOpenRouterTransport(OpenRouterTransport):
                 "http_referer": http_referer,
                 "title": title,
                 "categories": categories,
+                "base_url": base_url,
             }
         )
         if self._delay_seconds > 0:
@@ -112,6 +114,38 @@ def test_openrouter_adapter_returns_schema_valid_decision_on_success() -> None:
     first_call = cast(dict[str, object], transport.calls[0])
     assert first_call["http_referer"] == "https://example.test"
     assert first_call["title"] == "budok-ai"
+
+
+def test_openrouter_adapter_uses_custom_base_url_for_deepseek() -> None:
+    request = build_request((build_action("guard"),))
+    transport = StubOpenRouterTransport(
+        responses=[
+            _completion_response(
+                {
+                    "role": "assistant",
+                    "content": '{"action":"guard","notes":"DeepSeek ok."}',
+                }
+            )
+        ],
+    )
+    policy = _policy_config()
+    policy.options["base_url"] = "https://api.deepseek.com"
+    policy.options["response_format"] = "json_object"
+    adapter = build_openrouter_adapter(
+        "provider/deepseek-chat",
+        policy,
+        decision_timeout_ms=2500,
+        fallback_mode=FallbackMode.HEURISTIC_GUARD,
+        transport=transport,
+    )
+
+    result = asyncio.run(adapter.decide_with_trace(request))
+
+    assert result.decision.action == "guard"
+    first_call = cast(dict[str, object], transport.calls[0])
+    assert first_call["base_url"] == "https://api.deepseek.com"
+    request_payload = cast(dict[str, object], first_call["payload"])
+    assert request_payload["response_format"] == {"type": "json_object"}
 
 
 def test_openrouter_adapter_extracts_json_from_reasoning_when_content_is_missing() -> (

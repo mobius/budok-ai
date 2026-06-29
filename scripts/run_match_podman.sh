@@ -69,7 +69,7 @@ fi
 
 # Forward common API key env vars if present.
 ENV_ARGS=()
-for var in ANTHROPIC_API_KEY OPENAI_API_KEY OPENROUTER_API_KEY YOMI_AUTH_SECRET YOMI_SMOKE_PROVIDER; do
+for var in ANTHROPIC_API_KEY OPENAI_API_KEY OPENROUTER_API_KEY DEEPSEEK_API_KEY YOMI_AUTH_SECRET YOMI_SMOKE_PROVIDER; do
     if [ -n "${!var:-}" ]; then
         ENV_ARGS+=("--env" "$var=${!var}")
     fi

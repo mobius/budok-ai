@@ -7,6 +7,7 @@ and ensure the corresponding API key env var is set:
     YOMI_SMOKE_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-... uv run pytest tests/daemon/test_real_provider_smoke.py -v
     YOMI_SMOKE_PROVIDER=openai OPENAI_API_KEY=sk-... uv run pytest tests/daemon/test_real_provider_smoke.py -v
     YOMI_SMOKE_PROVIDER=openrouter OPENROUTER_API_KEY=sk-... uv run pytest tests/daemon/test_real_provider_smoke.py -v
+    YOMI_SMOKE_PROVIDER=deepseek DEEPSEEK_API_KEY=sk-... uv run pytest tests/daemon/test_real_provider_smoke.py -v
 """
 
 from __future__ import annotations
@@ -40,6 +41,13 @@ _PROVIDER_CONFIGS: dict[str, dict[str, object]] = {
         "model": "anthropic/claude-haiku-4-5-20251001",
         "builder": "build_openrouter_adapter",
         "module": "yomi_daemon.adapters.openrouter",
+    },
+    "deepseek": {
+        "env_var": "DEEPSEEK_API_KEY",
+        "model": "deepseek-v4-flash",
+        "builder": "build_openrouter_adapter",
+        "module": "yomi_daemon.adapters.openrouter",
+        "base_url": "https://api.deepseek.com",
     },
 }
 
@@ -77,6 +85,7 @@ def test_real_provider_returns_valid_decision() -> None:
         deadline_ms=15000,
     )
 
+    config = _PROVIDER_CONFIGS[provider]
     policy = PolicyConfig(
         provider=provider,
         model=model,
@@ -84,12 +93,12 @@ def test_real_provider_returns_valid_decision() -> None:
         credential=ProviderCredential(env_var=env_var, value=api_key),
         temperature=0.0,
         max_tokens=128,
+        options={"base_url": config["base_url"]} if "base_url" in config else {},
     )
 
     # Dynamic import to avoid import errors when provider SDK is not installed
     import importlib
 
-    config = _PROVIDER_CONFIGS[provider]
     module = importlib.import_module(str(config["module"]))
     builder = getattr(module, str(config["builder"]))
 
@@ -125,6 +134,7 @@ def test_real_provider_captures_token_metadata() -> None:
         deadline_ms=15000,
     )
 
+    config = _PROVIDER_CONFIGS[provider]
     policy = PolicyConfig(
         provider=provider,
         model=model,
@@ -132,11 +142,11 @@ def test_real_provider_captures_token_metadata() -> None:
         credential=ProviderCredential(env_var=env_var, value=api_key),
         temperature=0.0,
         max_tokens=64,
+        options={"base_url": config["base_url"]} if "base_url" in config else {},
     )
 
     import importlib
 
-    config = _PROVIDER_CONFIGS[provider]
     module = importlib.import_module(str(config["module"]))
     builder = getattr(module, str(config["builder"]))
 

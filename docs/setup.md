@@ -29,7 +29,7 @@ uv run --project daemon pytest tests/daemon -q
 
 ## 2. Provider credentials (optional)
 
-Provider-backed policies (Anthropic, OpenAI, OpenRouter) need API keys. Baseline policies need no credentials.
+Provider-backed policies (Anthropic, OpenAI, OpenRouter, DeepSeek) need API keys. Baseline policies need no credentials.
 
 ```bash
 cp .env.example .env
@@ -53,6 +53,7 @@ Available credential env vars:
 | Anthropic | `ANTHROPIC_API_KEY` |
 | OpenAI | `OPENAI_API_KEY` |
 | OpenRouter | `OPENROUTER_API_KEY` |
+| DeepSeek | `DEEPSEEK_API_KEY` |
 
 To test that credentials work:
 
@@ -169,7 +170,28 @@ Add a policy entry to the `policies` object and reference it in `policy_mapping`
 }
 ```
 
-For LLM-backed policies, set `decision_timeout_ms` to 30000 to accommodate API latency. Decision requests for both players are processed concurrently. See `daemon/config/llm_first_test.json` and `daemon/config/llm_v_llm.json` for complete examples.
+DeepSeek uses the `openrouter` adapter with a custom `base_url`:
+
+```json
+{
+  "policies": {
+    "deepseek/chat": {
+      "provider": "openrouter",
+      "model": "deepseek-v4-flash",
+      "prompt_version": "strategic_v1",
+      "credential_env_var": "DEEPSEEK_API_KEY",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "options": {
+        "base_url": "https://api.deepseek.com",
+        "response_format": "json_object"
+      }
+    }
+  }
+}
+```
+
+For LLM-backed policies, set `decision_timeout_ms` to 30000 to accommodate API latency. Decision requests for both players are processed concurrently. See `daemon/config/llm_first_test.json`, `daemon/config/llm_v_llm.json`, and `daemon/config/deepseek_vs_baseline.json` for complete examples.
 
 ## 8. Quality gates
 

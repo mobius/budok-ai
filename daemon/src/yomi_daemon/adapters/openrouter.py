@@ -76,7 +76,9 @@ class _ProviderCallResult:
 
 class DefaultOpenRouterTransport:
     def __init__(self) -> None:
-        self._client_by_key_and_headers: dict[tuple[str, str | None, str | None], AsyncOpenAI] = {}
+        self._client_by_key_and_headers: dict[
+            tuple[str, str | None, str | None, str | None], AsyncOpenAI
+        ] = {}
 
     async def create_completion(
         self,
@@ -87,6 +89,7 @@ class DefaultOpenRouterTransport:
         http_referer: str | None,
         title: str | None,
         categories: str | None = None,
+        base_url: str | None = None,
     ) -> JsonObject:
         try:
             response = await self._client_for_config(
@@ -94,6 +97,7 @@ class DefaultOpenRouterTransport:
                 http_referer=http_referer,
                 title=title,
                 categories=categories,
+                base_url=base_url,
             ).chat.completions.create(
                 **cast(Any, payload),
                 timeout=timeout_ms / 1000,
@@ -122,8 +126,10 @@ class DefaultOpenRouterTransport:
         http_referer: str | None,
         title: str | None,
         categories: str | None = None,
+        base_url: str | None = None,
     ) -> AsyncOpenAI:
-        cache_key = (api_key, http_referer, title, categories)
+        effective_base_url = base_url or _OPENROUTER_BASE_URL
+        cache_key = (api_key, http_referer, title, categories, effective_base_url)
         client = self._client_by_key_and_headers.get(cache_key)
         if client is None:
             default_headers: dict[str, str] = {}
@@ -135,7 +141,7 @@ class DefaultOpenRouterTransport:
                 default_headers["X-OpenRouter-Categories"] = categories
             client = AsyncOpenAI(
                 api_key=api_key,
-                base_url=_OPENROUTER_BASE_URL,
+                base_url=effective_base_url,
                 default_headers=default_headers or None,
                 max_retries=0,
             )
@@ -158,6 +164,8 @@ class OpenRouterAdapter(BasePolicyAdapter):
         title: str | None,
         categories: str | None = None,
         reasoning_effort: str | None = None,
+        base_url: str | None = None,
+        response_format: str | None = None,
         transport: OpenRouterTransport | None = None,
         default_trace_seed: int = 0,
     ) -> None:
@@ -172,6 +180,8 @@ class OpenRouterAdapter(BasePolicyAdapter):
         self._title = title
         self._categories = categories
         self._reasoning_effort = reasoning_effort
+        self._base_url = base_url
+        self._response_format = response_format or "json_schema"
         self._transport = transport or DefaultOpenRouterTransport()
 
     async def decide(self, request: DecisionRequest) -> ActionDecision:
@@ -268,6 +278,7 @@ class OpenRouterAdapter(BasePolicyAdapter):
             http_referer=self._http_referer,
             title=self._title,
             categories=self._categories,
+            base_url=self._base_url,
         )
         try:
             output = _extract_response_output(provider_response)
@@ -296,14 +307,7 @@ class OpenRouterAdapter(BasePolicyAdapter):
         payload: JsonObject = {
             "model": cast(str, self.metadata.model),
             "messages": [{"role": "user", "content": prompt_text}],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "yomi_action_decision",
-                    "strict": False,
-                    "schema": decision_output_json_schema(),
-                },
-            },
+            "response_format": _build_response_format(self._response_format),
             "user": f"{request.match_id}:{request.turn_id}:{attempt_kind}",
         }
         if self._temperature is not None:
@@ -344,6 +348,8 @@ def build_openrouter_adapter(
         title=_optional_string_option(options, "title"),
         categories=_optional_string_option(options, "categories"),
         reasoning_effort=_optional_string_option(options, "reasoning_effort"),
+        base_url=_optional_string_option(options, "base_url"),
+        response_format=_optional_string_option(options, "response_format"),
         transport=transport,
         default_trace_seed=default_trace_seed,
     )
@@ -358,6 +364,23 @@ def _optional_string_option(options: Mapping[str, object], key: str) -> str | No
             f"openrouter policy option {key!r} must be a non-empty string"
         )
     return value
+
+
+def _build_response_format(response_format: str) -> JsonObject:
+    if response_format == "json_object":
+        return {"type": "json_object"}
+    if response_format == "json_schema":
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "yomi_action_decision",
+                "strict": False,
+                "schema": decision_output_json_schema(),
+            },
+        }
+    raise AdapterConstructionError(
+        f"openrouter response_format {response_format!r} must be 'json_schema' or 'json_object'"
+    )
 
 
 def _with_provider_metadata(
