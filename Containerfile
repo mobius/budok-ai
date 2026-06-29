@@ -17,6 +17,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 ENV UV_PYTHON=3.12
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Install runtime dependencies for YOMI Hustle, Xvfb, and ffmpeg.
@@ -45,7 +46,8 @@ COPY schemas/ ./schemas/
 COPY mod/ ./mod/
 COPY tests/ ./tests/
 
-# Pre-sync dependencies so the first container start is fast.
-RUN uv sync --project daemon
+# Pre-sync dependencies into a container-local venv so the host's .venv does not
+# override it at runtime.
+RUN uv sync --project daemon --active
 
 CMD ["bash"]

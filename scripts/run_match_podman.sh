@@ -81,9 +81,10 @@ log "  Game mount:       $GAME_DIR -> /games/yomi"
 
 exec podman run --rm --network=host \
     "${ENV_ARGS[@]+"${ENV_ARGS[@]}"}" \
+    --env "UV_PROJECT_ENVIRONMENT=/opt/venv" \
     -v "$REPO_ROOT:/budok-ai:Z" \
     -v "$GAME_DIR:/games/yomi:Z" \
     -w /budok-ai \
     "$IMAGE_NAME" \
-    bash -c 'set -euo pipefail; uv sync --project daemon; GAME_DIR=/games/yomi exec scripts/run_match_linux.sh "$@"' \
+    bash -c 'set -euo pipefail; uv sync --project daemon --active; GAME_DIR=/games/yomi exec scripts/run_match_linux.sh "$@"' \
     bash "${PASS_THROUGH_ARGS[@]+"${PASS_THROUGH_ARGS[@]}"}"
