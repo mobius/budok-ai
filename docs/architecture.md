@@ -40,6 +40,7 @@ This document covers daemon and mod runtime architecture. The normative source r
 - `anthropic.py` — Anthropic Claude models
 - `openai.py` — OpenAI models
 - `openrouter.py` — OpenRouter-proxied models, and OpenAI-compatible endpoints such as DeepSeek via `options.base_url`
+- `rl.py` — Trained PyTorch RL policy (see `docs/rl.md`)
 
 The `openrouter` adapter supports these policy options:
 
