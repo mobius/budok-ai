@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import random
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -94,16 +95,20 @@ def collect_episode(
     env: MatchEnvironment,
     policy: YomiPolicy,
     *,
+    encoder_dir: Path | None = None,
     seed: int = 0,
 ) -> tuple[list[TrajectoryStep], dict[str, object]]:
     """Run one episode and return trajectory steps + match result."""
     # Save the model inside the repo so the Podman container can read it through
-    # the repository volume mount.
+    # the repository volume mount. Also copy encoder_config.json so the rl adapter
+    # can reconstruct the exact action vocabulary.
     repo_root = Path(__file__).resolve().parents[4]
     rl_dir = repo_root / ".rl_train"
     rl_dir.mkdir(exist_ok=True)
     model_path = rl_dir / "policy.pt"
     policy.save(model_path)
+    if encoder_dir is not None and (encoder_dir / "encoder_config.json").exists():
+        shutil.copy(encoder_dir / "encoder_config.json", rl_dir / "encoder_config.json")
     steps, result = env.run_episode(model_path, seed=seed)
     return steps, result
 
@@ -113,6 +118,7 @@ def train_ppo(
     env: MatchEnvironment,
     policy: YomiPolicy,
     output_dir: Path,
+    encoder_dir: Path | None = None,
     total_episodes: int = 50,
     episodes_per_batch: int = 4,
     epochs_per_batch: int = 4,
@@ -154,7 +160,7 @@ def train_ppo(
             episode_num = episode_start + i + 1
             logger.info("Collecting episode %d/%d", episode_num, total_episodes)
 
-            steps, result = collect_episode(env, policy, seed=episode_seed)
+            steps, result = collect_episode(env, policy, encoder_dir=encoder_dir, seed=episode_seed)
             total_turns += int(result.get("total_turns", 0))
             winner = result.get("winner")
             if winner == "p1":
@@ -366,6 +372,7 @@ def main() -> None:
             env=env,
             policy=policy,
             output_dir=args.output_dir,
+            encoder_dir=args.bc_model.parent if args.bc_model is not None else None,
             total_episodes=args.total_episodes,
             episodes_per_batch=args.episodes_per_batch,
             seed=args.seed,
