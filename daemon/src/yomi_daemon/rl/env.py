@@ -118,7 +118,8 @@ class MatchEnvironment:
         return config_path
 
     def _run_match(self, config_path: Path) -> None:
-        repo_root = Path(__file__).resolve().parents[3]
+        # env.py is at daemon/src/yomi_daemon/rl/env.py; repo root is 4 parents up.
+        repo_root = Path(__file__).resolve().parents[4]
         if self.use_podman:
             cmd = [
                 str(repo_root / "scripts" / "run_match_podman.sh"),
@@ -149,7 +150,7 @@ class MatchEnvironment:
         )
 
     def _find_latest_run(self) -> Path | None:
-        repo_root = Path(__file__).resolve().parents[3]
+        repo_root = Path(__file__).resolve().parents[4]
         runs_root = repo_root / "runs"
         if not runs_root.exists():
             return None
