@@ -21,8 +21,8 @@
       "model": "bc_baseline",
       "prompt_version": "none",
       "options": {
-        "model_path": "models/bc_baseline/bc_best.pt",
-        "encoder_dir": "models/bc_baseline",
+        "model_path": "models/bc_baseline_v2/bc_best.pt",
+        "encoder_dir": "models/bc_baseline_v2",
         "deterministic": false
       }
     },

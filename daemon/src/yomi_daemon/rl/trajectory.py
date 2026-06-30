@@ -155,7 +155,7 @@ class TrajectoryExtractor:
             p2_policy=p2_policy,
             winner=result.get("winner"),
             end_reason=result.get("end_reason"),
-            total_turns=int(result.get("total_turns", 0)),
+            total_turns=int(result.get("total_turns") or 0),
             steps=steps,
         )
 
