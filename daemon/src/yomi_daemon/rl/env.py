@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 import tempfile
@@ -14,6 +15,8 @@ import numpy as np
 
 from yomi_daemon.rl import ActionEncoder, ObservationEncoder, TrajectoryExtractor
 from yomi_daemon.rl.types import TrajectoryStep
+
+logger = logging.getLogger(__name__)
 
 
 class MatchEnvironment:
@@ -76,10 +79,22 @@ class MatchEnvironment:
         return rl_steps, result
 
     def _write_config(self, rl_model_path: Path, *, seed: int) -> Path:
+        repo_root = Path(__file__).resolve().parents[4]
+        # Place the temporary config inside the repo so the Podman container can
+        # read it through the repository volume mount.
         if self._temp_dir is None:
-            self._temp_dir = Path(tempfile.mkdtemp(prefix="yomi_rl_"))
+            self._temp_dir = repo_root / ".rl_train"
+            self._temp_dir.mkdir(exist_ok=True)
 
-        encoder_dir = str(rl_model_path.parent)
+        # Ensure model/encoder paths are relative to repo root so they resolve
+        # inside the container at /budok-ai/...
+        try:
+            model_path_str = str(rl_model_path.relative_to(repo_root))
+            encoder_dir = str(rl_model_path.parent.relative_to(repo_root))
+        except ValueError:
+            model_path_str = str(rl_model_path)
+            encoder_dir = str(rl_model_path.parent)
+
         config: dict[str, Any] = {
             "version": "v1",
             "transport": {"host": "0.0.0.0", "port": 8765},
@@ -93,7 +108,7 @@ class MatchEnvironment:
                     "model": "agent",
                     "prompt_version": "none",
                     "options": {
-                        "model_path": str(rl_model_path),
+                        "model_path": model_path_str,
                         "encoder_dir": encoder_dir,
                         "deterministic": False,
                     },
@@ -115,7 +130,10 @@ class MatchEnvironment:
 
         config_path = self._temp_dir / "rl_train_config.json"
         config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
-        return config_path
+        # Return a path relative to the repo root so the same path resolves both
+        # on the host (where cwd=repo_root) and inside the Podman container
+        # (where /budok-ai is the repo mount and cwd=/budok-ai).
+        return Path(".rl_train") / "rl_train_config.json"
 
     def _run_match(self, config_path: Path) -> None:
         # env.py is at daemon/src/yomi_daemon/rl/env.py; repo root is 4 parents up.
@@ -140,14 +158,19 @@ class MatchEnvironment:
                 cmd.append("--no-replay")
             env = {"GAME_DIR": str(self.game_dir)}
 
-        subprocess.run(
+        result = subprocess.run(
             cmd,
             cwd=repo_root,
             env=env if not self.use_podman else None,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
         )
+        if result.returncode != 0:
+            logger.error("Match subprocess failed:\n%s", result.stdout)
+            raise subprocess.CalledProcessError(
+                result.returncode, cmd, output=result.stdout
+            )
 
     def _find_latest_run(self) -> Path | None:
         repo_root = Path(__file__).resolve().parents[4]

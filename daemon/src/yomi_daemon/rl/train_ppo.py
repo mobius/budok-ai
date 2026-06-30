@@ -97,12 +97,14 @@ def collect_episode(
     seed: int = 0,
 ) -> tuple[list[TrajectoryStep], dict[str, object]]:
     """Run one episode and return trajectory steps + match result."""
-    import tempfile
-
-    with tempfile.TemporaryDirectory(prefix="yomi_rl_collect_") as tmp:
-        model_path = Path(tmp) / "policy.pt"
-        policy.save(model_path)
-        steps, result = env.run_episode(model_path, seed=seed)
+    # Save the model inside the repo so the Podman container can read it through
+    # the repository volume mount.
+    repo_root = Path(__file__).resolve().parents[4]
+    rl_dir = repo_root / ".rl_train"
+    rl_dir.mkdir(exist_ok=True)
+    model_path = rl_dir / "policy.pt"
+    policy.save(model_path)
+    steps, result = env.run_episode(model_path, seed=seed)
     return steps, result
 
 
