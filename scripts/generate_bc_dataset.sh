@@ -14,6 +14,7 @@ COUNT=10
 CONFIGS=(
     "daemon/config/bc_scripted_vs_random.json"
     "daemon/config/bc_greedy_vs_random.json"
+    "daemon/config/bc_greedy_vs_scripted.json"
 )
 
 while [[ $# -gt 0 ]]; do

@@ -1,0 +1,36 @@
+{
+  "version": "v1",
+  "transport": {
+    "host": "0.0.0.0",
+    "port": 8765
+  },
+  "decision_timeout_ms": 10000,
+  "fallback_mode": "safe_continue",
+  "logging": {
+    "events": true,
+    "prompts": false,
+    "raw_provider_payloads": false
+  },
+  "policy_mapping": {
+    "p1": "baseline/greedy_damage",
+    "p2": "baseline/scripted_safe"
+  },
+  "policies": {
+    "baseline/greedy_damage": {
+      "provider": "baseline",
+      "prompt_version": "none"
+    },
+    "baseline/scripted_safe": {
+      "provider": "baseline",
+      "prompt_version": "none"
+    }
+  },
+  "character_selection": {
+    "mode": "mirror"
+  },
+  "trace_seed": 0,
+  "stage_id": "training_room",
+  "match_options": {
+    "starting_hp": 750
+  }
+}
